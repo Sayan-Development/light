@@ -19,14 +19,17 @@ dependencies {
     compileOnly 'net.mamoe.yamlkt:yamlkt:0.13.0'
 }
 
-tasks.withType(JavaExec) {
+/*tasks.withType(JavaExec) {
     jvmArgs += ['--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED']
-}
+}*/
 
 jar {
     manifest {
         attributes(
-                'Main-Class': 'org.sayandev.MainKt'
+                'Main-Class': 'org.sayandev.MainKt',
+                'Agent-Class': 'org.sayandev.Agent',
+                'Can-Redefine-Classes': 'true',
+                'Can-Retransform-Classes': 'true'
         )
     }
 }

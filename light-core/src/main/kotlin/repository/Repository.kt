@@ -5,5 +5,5 @@ import java.io.File
 interface Repository {
     val url: String
 
-    fun download(dependency: Dependency, version: Version, directory: File)
+    fun download(dependency: Dependency, directory: File)
 }

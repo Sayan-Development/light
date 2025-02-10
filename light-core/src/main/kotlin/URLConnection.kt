@@ -25,4 +25,8 @@ data class URLConnection(
     fun openAndConnect(): HttpURLConnection {
         return open().also { connect() }
     }
+
+    fun isValid(): Boolean {
+        return connection().responseCode == 200
+    }
 }
