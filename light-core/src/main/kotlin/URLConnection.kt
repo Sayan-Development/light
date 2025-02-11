@@ -4,9 +4,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 data class URLConnection(
-    val uri: String
+    val url: URL
 ) {
-    val url = URL(uri)
+    constructor(url: String): this(URL(url))
     private var connection: HttpURLConnection? = null
 
     fun connection(): HttpURLConnection {

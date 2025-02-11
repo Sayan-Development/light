@@ -1,20 +1,25 @@
 package org.sayandev
 
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.awaitAll
-import org.sayandev.repository.AsyncDownload
+import org.sayandev.download.AsyncDownloadService
+import org.sayandev.download.DownloadService
 import org.sayandev.repository.Dependency
 import org.sayandev.repository.Repository
 import java.io.File
 
-data class DependencyManager(
-    val directory: File
+data class DependencyManager<T: DownloadService>(
+    val directory: File,
+    val downloadService: T
 ) {
     val downloadedDependencies = mutableListOf<Dependency>()
 
     init {
         directory.mkdir()
+
+        if (downloadService is AsyncDownloadService) {
+            downloadService.initializeDownloadTask(this) {
+
+            }
+        }
     }
 
     val repositories = mutableListOf<Repository>()
@@ -34,16 +39,6 @@ data class DependencyManager(
 
     fun removeDependency(dependency: Dependency) {
         dependencies.remove(dependency)
-    }
-
-    fun downloadDependencies() {
-        for (dependency in dependencies) {
-            dependency.download(this, true, false)
-        }
-    }
-
-    suspend fun downloadDependenciesAsync(): Deferred<List<File>> {
-        return CompletableDeferred(dependencies.map { AsyncDownload.download(this, it) }.awaitAll())
     }
 
     fun loadDependencies() {
