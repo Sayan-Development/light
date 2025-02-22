@@ -1,4 +1,4 @@
-package org.sayandev
+package org.sayandev.light
 
 import java.net.HttpURLConnection
 import java.net.URL

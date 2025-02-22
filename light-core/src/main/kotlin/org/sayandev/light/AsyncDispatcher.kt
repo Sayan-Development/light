@@ -1,6 +1,5 @@
-package org.sayandev
+package org.sayandev.light
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Runnable
 import java.util.concurrent.ExecutorService
@@ -10,15 +9,17 @@ import kotlin.coroutines.CoroutineContext
 class AsyncDispatcher(
     threadPrefix: String,
     threads: Int
-): CoroutineDispatcher() {
+) : CoroutineDispatcher() {
 
     private val threadPool: ExecutorService = Executors.newFixedThreadPool(
-        threads.coerceAtLeast(1),
-        ThreadFactoryBuilder().setNameFormat("$threadPrefix-%d").build()
-    )
+        threads.coerceAtLeast(1)
+    ) { runnable ->
+        Thread(runnable).apply {
+            name = "$threadPrefix-${this.id}"
+        }
+    }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         threadPool.submit(block)
     }
-
 }
