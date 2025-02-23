@@ -1,11 +1,20 @@
+package org.sayandev.light
+
 import org.sayandev.BaseLibrary
-import org.sayandev.light.KClassLoaderManager
 import java.io.File
 
 class RequiredTorches(outputDirectory: File): List<BaseLibrary> by listOf(
     BaseLibrary(
         "https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.10.1/kotlinx-coroutines-core-jvm-1.10.1.jar",
         File(outputDirectory, "kotlinx-coroutines-core-jvm-1.10.1.jar")
+    ),
+    BaseLibrary(
+        "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar",
+        File(outputDirectory, "asm-9.7.1.jar")
+    ),
+    BaseLibrary(
+        "https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.7.1/asm-commons-9.7.1.jar",
+        File(outputDirectory, "asm-commons-9.7.1.jar")
     ),
     BaseLibrary(
         "https://repo1.maven.org/maven2/net/thauvin/erik/urlencoder/urlencoder-lib-jvm/1.6.0/urlencoder-lib-jvm-1.6.0.jar",

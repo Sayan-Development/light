@@ -9,9 +9,9 @@ interface Dependency {
     val group: String
     val artifact: String
     val version: Version
-    val isKotlin: Boolean
+    val isKotlinNative: Boolean
 
-    fun saveData(directory: File)
+    fun saveData(directory: File): File
 
     fun dependencyDirectory(baseDirectory: File): File
 

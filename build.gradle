@@ -16,7 +16,6 @@ repositories {
 dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     compileOnly 'com.google.code.gson:gson:2.12.1'
-    compileOnly 'net.mamoe.yamlkt:yamlkt:0.13.0'
 }
 
 /*tasks.withType(JavaExec) {
