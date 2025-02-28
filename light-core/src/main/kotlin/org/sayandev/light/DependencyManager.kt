@@ -4,6 +4,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
 import org.sayandev.LightClassLoader
 import org.sayandev.light.dependency.dependencies.MavenDependency
 import org.sayandev.light.repository.repositories.MavenRepository
@@ -26,6 +27,8 @@ data class DependencyManager(
     val repositories = mutableListOf<MavenRepository>()
     val downloadedDependencies = mutableListOf<MavenDownloadedDependency>()
 
+    val relocationHelper = RelocationHelper(baseDirectory)
+
     fun addRepository(repository: MavenRepository) {
         repositories.add(repository)
     }
@@ -45,7 +48,9 @@ data class DependencyManager(
 
     fun downloadAll(): Deferred<List<MavenDownloadedDependency>> {
         val filesDeferred = CompletableDeferred<List<MavenDownloadedDependency>>()
+        val downloadsQueue = mutableMapOf<Pair<MavenDependency, MavenRepository>, Deferred<File>>()
         val deferred = mutableListOf<MavenDownloadedDependency>()
+        // TODO: re-relocation if the relocations are mismatched
         CoroutineUtils.launch(downloadDispatcher) {
             for (dependencyFile in baseDirectory.walk().filter { it.isFile && it.extension == "yml" }) {
                 val dependency = MavenDependency.getData(dependencyFile)
@@ -73,8 +78,20 @@ data class DependencyManager(
                     continue
                 }
                 logger.info("Downloading dependency $dependency from repository $repository")
-                deferred.add(MavenDownloadedDependency(dependency, repository, repository.download(baseDirectory, downloadDispatcher, dependency).await()))
-                logger.info("Downloaded dependency $dependency from repository $repository")
+                // TODO: think of something to do this non-blocking
+                downloadsQueue[dependency to repository] = repository.download(baseDirectory, downloadDispatcher, dependency).apply {
+                    this.invokeOnCompletion {
+                        logger.info("Downloaded dependency $dependency from repository $repository")
+                    }
+                }
+            }
+            downloadsQueue.values.awaitAll()
+            for (downloadQueue in downloadsQueue) {
+                // TODO: create a dataclass for downloadQueue map
+                val dependency = downloadQueue.key.first
+                val repository = downloadQueue.key.second
+                val file = downloadQueue.value
+                deferred.add(MavenDownloadedDependency(dependency, repository, file.await()))
             }
             downloadedDependencies.addAll(deferred)
             filesDeferred.complete(deferred)
@@ -87,21 +104,32 @@ data class DependencyManager(
 
         for (dependency in downloadedDependencies) {
             logger.info("Loading dependency $dependency")
-            dependency.dependency.load(classLoader, if (dependency.dependency.relocations.isNotEmpty()) dependency.dependency.getAndCreateRelocated(baseDirectory, dependency.file) else dependency.file)
+            dependency.dependency.load(classLoader, if (dependency.dependency.relocations.isNotEmpty()) dependency.dependency.getAndCreateRelocated(relocationHelper, dependency.file) else dependency.file)
         }
         deferred.complete(Unit)
 
         return deferred
     }
 
-    fun saveAll() {
+    fun saveAll(): CompletableDeferred<Unit> {
+        val deferred = CompletableDeferred<Unit>()
+        val tempDependencies = downloadedDependencies.toMutableList()
         for (dependency in downloadedDependencies) {
-            dependency.dependency.saveData(baseDirectory, dependency.file, SavedMavenDependency(
-                dependency.dependency,
-                dependency.repository,
-                DependencyPath(dependency.file.path),
-                dependency.dependency.relocations.isNotEmpty()
-            ))
+            CoroutineUtils.launch(resolveDispatcher) {
+                dependency.dependency.saveData(relocationHelper, baseDirectory, dependency.file, SavedMavenDependency(
+                    dependency.dependency,
+                    dependency.repository,
+                    DependencyPath(dependency.file.path),
+                    dependency.dependency.relocations.isNotEmpty()
+                ))
+                tempDependencies.remove(dependency)
+                println("dependencies: ${tempDependencies.joinToString(", ") { it.dependency.artifact }}")
+                // TODO: this doesn't always work, sometimes one dependency is left on the list. race condition or something
+                if (tempDependencies.isEmpty()) {
+                    deferred.complete(Unit)
+                }
+            }
         }
+        return deferred
     }
 }

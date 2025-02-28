@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Deferred
 import org.sayandev.LightClassLoader
 import org.sayandev.light.Relocation
+import org.sayandev.light.RelocationHelper
 import org.sayandev.light.SavedMavenDependency
 import org.sayandev.light.repository.repositories.MavenRepository
 import java.io.File
@@ -15,7 +16,7 @@ interface Dependency {
     val relocations: MutableList<Relocation>
     val isKotlinNative: Boolean
 
-    fun saveData(asmDirectory: File, file: File, data: SavedMavenDependency): File
+    fun saveData(relocationHelper: RelocationHelper, asmDirectory: File, file: File, data: SavedMavenDependency): File
 
     fun dependencyDirectory(baseDirectory: File): File
 

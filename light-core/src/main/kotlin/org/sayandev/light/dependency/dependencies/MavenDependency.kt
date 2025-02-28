@@ -23,18 +23,18 @@ data class MavenDependency(
 ) : Dependency {
     override val relocations = mutableListOf<Relocation>()
 
-    fun getAndCreateRelocated(baseDirectory: File, file: File): File {
+    fun getAndCreateRelocated(relocationHelper: RelocationHelper, file: File): File {
         return File(file.parentFile, "${file.nameWithoutExtension}-relocated.jar").apply {
-            RelocationHelper(baseDirectory).relocate(file.toPath(), this.toPath(), relocations)
+            relocationHelper.relocate(file.toPath(), this.toPath(), relocations)
         }
     }
 
-    override fun saveData(baseDirectory: File, file: File, data: SavedMavenDependency): File {
+    override fun saveData(relocationHelper: RelocationHelper, baseDirectory: File, file: File, data: SavedMavenDependency): File {
         val dataFile = File(file.parentFile, "${file.nameWithoutExtension}.yml")
         println(dataFile.absolutePath)
         dataFile.writeText(Yaml.default.encodeToString(data))
         if (data.relocate) {
-            getAndCreateRelocated(baseDirectory, file)
+            getAndCreateRelocated(relocationHelper, file)
         }
         return dataFile
     }
@@ -73,13 +73,12 @@ data class MavenDependency(
     }
 
     override fun versionMetaURI(repository: MavenRepository): String {
-        return "${repository.uri}/${group.replace('.', '/')}/${artifact}/${version.value}/${artifact}-${version.value}.pom"
+        return "${repository.uri.removeSuffix("/")}/${group.replace('.', '/')}/${artifact}/${version.value}/${artifact}-${version.value}.pom"
     }
 
     override fun downloadURI(repository: MavenRepository): String {
-        val isFileRepo = repository.uri.startsWith("file:/")
-        return if (!isKotlinNative) "${repository.uri}/${group.replace(".", if (isFileRepo) "/" else ".")}/${artifact}/${version.value}/${artifact}-${version.value}.jar"
-        else "${repository.uri}/${group.replace(".", if (isFileRepo) "/" else ".")}/${artifact}/${version.value}/${artifact}-${version.value}-jvm.jar"
+        return if (!isKotlinNative) "${repository.uri.removeSuffix("/")}/${group.replace(".", "/")}/${artifact}/${version.value}/${artifact}-${version.value}.jar"
+        else "${repository.uri.removeSuffix("/")}/${group.replace(".", "/")}/${artifact}/${version.value}/${artifact}-${version.value}-jvm.jar"
     }
 
     override fun checksumURI(repository: MavenRepository): String {

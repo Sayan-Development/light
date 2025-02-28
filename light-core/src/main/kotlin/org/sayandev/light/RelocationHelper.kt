@@ -37,11 +37,10 @@ class RelocationHelper(asmDirectory: File?) {
     init {
         val classLoader = IsolatedClassLoader()
 
-
         val asm = DirectLibrary(
             "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar",
             File(asmDirectory, "asm-9.7.1.jar"),
-            "70ef490a486da0997a11ae2b8276718d55997e4872b6afd3ee47e634d139333f",
+            "8cadd43ac5eb6d09de05faecca38b917a040bb9139c7edeb4cc81c740b713281",
             "SHA-256"
         )
         asm.download()
@@ -94,7 +93,6 @@ class RelocationHelper(asmDirectory: File?) {
     }
 
     fun relocate(`in`: Path, out: Path, relocations: List<Relocation>) {
-
         try {
             val rules: MutableList<Any?> = LinkedList<Any?>()
             for (relocation in relocations) {

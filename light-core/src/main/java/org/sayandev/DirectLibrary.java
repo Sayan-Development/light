@@ -20,6 +20,12 @@ public class DirectLibrary {
     }
 
     public void download() {
+        if (outputFile.exists()) {
+            if (checksum.equals(FileUtils.getChecksum(outputFile, checksumType))) {
+                return;
+            }
+        }
+
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(uri).openConnection();
             connection.setRequestMethod("GET");
