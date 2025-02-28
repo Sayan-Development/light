@@ -1,6 +1,6 @@
 package org.sayandev.light
 
-import org.sayandev.BaseLibrary
+import org.sayandev.DirectLibrary
 import org.sayandev.IsolatedClassLoader
 import java.io.File
 import java.lang.reflect.Constructor
@@ -38,14 +38,14 @@ class RelocationHelper(asmDirectory: File?) {
         val classLoader = IsolatedClassLoader()
 
 
-        val asm = BaseLibrary(
+        val asm = DirectLibrary(
             "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar",
             File(asmDirectory, "asm-9.7.1.jar"),
             "70ef490a486da0997a11ae2b8276718d55997e4872b6afd3ee47e634d139333f",
             "SHA-256"
         )
         asm.download()
-        val asmCommon = BaseLibrary(
+        val asmCommon = DirectLibrary(
             "https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.7.1/asm-commons-9.7.1.jar",
             File(asmDirectory, "asm-commons-9.7.1.jar"),
             "9a579b54d292ad9be171d4313fd4739c635592c2b5ac3a459bbd1049cddec6a0",
@@ -59,7 +59,7 @@ class RelocationHelper(asmDirectory: File?) {
         classLoader.addPath(asmCommon.getOutputFile().toPath())
 
 
-        val luckoRelocator = BaseLibrary(
+        val luckoRelocator = DirectLibrary(
             "https://repo1.maven.org/maven2/me/lucko/jar-relocator/1.7/jar-relocator-1.7.jar",
             File(asmDirectory, "jar-relocator-1.7.jar"),
             "1584ce507e0c165e219d32b33765d42988494891",

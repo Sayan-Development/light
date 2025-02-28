@@ -6,13 +6,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
 
-public class BaseLibrary {
+public class DirectLibrary {
     private final String uri;
     private final File outputFile;
     private final String checksum;
     private final String checksumType;
 
-    public BaseLibrary(String uri, File outputFile, String checksum, String checksumType) {
+    public DirectLibrary(String uri, File outputFile, String checksum, String checksumType) {
         this.uri = uri;
         this.outputFile = outputFile;
         this.checksum = checksum;
