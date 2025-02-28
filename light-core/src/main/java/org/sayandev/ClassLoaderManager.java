@@ -3,7 +3,7 @@ package org.sayandev;
 import java.io.File;
 import java.lang.reflect.Method;
 
-class ClassLoaderManager {
+class ClassLoaderManager implements LightClassLoader {
 
     private static final ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     private static Method method;
@@ -17,7 +17,7 @@ class ClassLoaderManager {
         }
     }
 
-    public static void load(File file) {
+    public void load(File file) {
         try {
             method.invoke(classLoader, file.getAbsolutePath());
         } catch (Exception e) {

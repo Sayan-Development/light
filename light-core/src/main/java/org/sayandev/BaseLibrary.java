@@ -9,10 +9,14 @@ import java.nio.file.Files;
 public class BaseLibrary {
     private final String uri;
     private final File outputFile;
+    private final String checksum;
+    private final String checksumType;
 
-    public BaseLibrary(String uri, File outputFile) {
+    public BaseLibrary(String uri, File outputFile, String checksum, String checksumType) {
         this.uri = uri;
         this.outputFile = outputFile;
+        this.checksum = checksum;
+        this.checksumType = checksumType;
     }
 
     public void download() {

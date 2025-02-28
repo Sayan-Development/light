@@ -2,13 +2,16 @@ package org.sayandev.light.dependency.dependencies
 
 import com.charleskorn.kaml.Yaml
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Deferred
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import org.sayandev.LightClassLoader
+import org.sayandev.light.Relocation
 import org.sayandev.light.*
 import org.sayandev.light.dependency.Dependency
 import org.sayandev.light.dependency.Version
-import org.sayandev.light.repository.Repository
+import org.sayandev.light.repository.repositories.MavenRepository
 import java.io.File
 
 @Serializable
@@ -18,9 +21,21 @@ data class MavenDependency(
     override val version: Version,
     override val isKotlinNative: Boolean = false
 ) : Dependency {
-    override fun saveData(file: File): File {
+    override val relocations = mutableListOf<Relocation>()
+
+    fun getAndCreateRelocated(baseDirectory: File, file: File): File {
+        return File(file.parentFile, "${file.nameWithoutExtension}-relocated.jar").apply {
+            RelocationHelper(baseDirectory).relocate(file.toPath(), this.toPath(), relocations)
+        }
+    }
+
+    override fun saveData(baseDirectory: File, file: File, data: SavedMavenDependency): File {
         val dataFile = File(file.parentFile, "${file.nameWithoutExtension}.yml")
-        dataFile.writeText(Yaml.default.encodeToString(SavedMavenDependency(this, DependencyPath(file.relativeTo(dataFile).path))))
+        println(dataFile.absolutePath)
+        dataFile.writeText(Yaml.default.encodeToString(data))
+        if (data.relocate) {
+            getAndCreateRelocated(baseDirectory, file)
+        }
         return dataFile
     }
 
@@ -28,18 +43,25 @@ data class MavenDependency(
         return baseDirectory.resolve(File(group))
     }
 
-    override fun load(file: File) {
-        KClassLoaderManager.load(file)
+    override fun load(classLoader: LightClassLoader, file: File) {
+        classLoader.load(file)
     }
 
-    override fun resolveRepository(resolverDispatcher: AsyncDispatcher, repositories: List<Repository>): Deferred<Repository?> {
-        val deferred = CompletableDeferred<Repository?>()
+    override fun resolveRepository(resolverDispatcher: CoroutineDispatcher, repositories: List<MavenRepository>): Deferred<MavenRepository?> {
+        val deferred = CompletableDeferred<MavenRepository?>()
         val toCheckRepositories = repositories.toMutableList()
-        for (repository in repositories) {
+        for (repository in repositories.sortedBy { it.uri.startsWith("file:/") }) {
             if (deferred.isCompleted) break
             CoroutineUtils.launch(resolverDispatcher) {
-                if (URLConnection(downloadURI(repository)).apply { this.open() }.isValid()) {
-                    deferred.complete(repository)
+                if (repository.uri.startsWith("file:/")) {
+                    val file = File(downloadURI(repository).replace("file:/", ""))
+                    if (file.exists()) {
+                        deferred.complete(repository)
+                    }
+                } else {
+                    if (URLConnection(downloadURI(repository)).apply { this.open() }.isValid()) {
+                        deferred.complete(repository)
+                    }
                 }
                 toCheckRepositories.remove(repository)
                 if (toCheckRepositories.isEmpty() && !deferred.isCompleted) {
@@ -50,18 +72,23 @@ data class MavenDependency(
         return deferred
     }
 
-    override fun versionMetaURI(repository: Repository): String {
+    override fun versionMetaURI(repository: MavenRepository): String {
         return "${repository.uri}/${group.replace('.', '/')}/${artifact}/${version.value}/${artifact}-${version.value}.pom"
     }
 
-    override fun downloadURI(repository: Repository): String {
-        return if (!isKotlinNative) "${repository.uri}/${group.replace('.', '/')}/${artifact}/${version.value}/${artifact}-${version.value}.jar"
-        else "${repository.uri}/${group.replace('.', '/')}/${artifact}/${version.value}/${artifact}-${version.value}-jvm.jar"
+    override fun downloadURI(repository: MavenRepository): String {
+        val isFileRepo = repository.uri.startsWith("file:/")
+        return if (!isKotlinNative) "${repository.uri}/${group.replace(".", if (isFileRepo) "/" else ".")}/${artifact}/${version.value}/${artifact}-${version.value}.jar"
+        else "${repository.uri}/${group.replace(".", if (isFileRepo) "/" else ".")}/${artifact}/${version.value}/${artifact}-${version.value}-jvm.jar"
     }
 
-    @Serializable
-    data class SavedMavenDependency(
-        val dependency: MavenDependency,
-        val file: DependencyPath
-    )
+    override fun checksumURI(repository: MavenRepository): String {
+        return "${downloadURI(repository)}.sha256"
+    }
+
+     companion object {
+         fun getData(file: File): SavedMavenDependency? {
+             return runCatching { Yaml.default.decodeFromString<SavedMavenDependency>(SavedMavenDependency.serializer(), file.readText()) }.getOrNull()
+         }
+     }
 }
